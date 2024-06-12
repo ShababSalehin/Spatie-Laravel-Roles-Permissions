@@ -30,7 +30,7 @@
                     </div>
 
 
-                    <div class="flex gap-6">
+                    <div class="flex gap-6 bg-white">
                         @foreach($permissions as $permission)
                         <div class="ml-3 role-management-checkbox">
                             <input onclick="checksinglepermission('role-management-checkbox','management')" name="permissions[]" id="permission_checkbox" value="" type="checkbox" class="w-4 h-4 text-blue-600 bg-gray-100 rounded border-gray-300 focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
