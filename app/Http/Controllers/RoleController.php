@@ -45,7 +45,12 @@ class RoleController extends Controller
      */
     public function store(Request $request)
     {
-        // CreateRole::create($request);
+        $request->validate([
+            'name' =>'required|unique:roles,name',
+        ]);
+
+        $role = Role::create(['name' => $request->name, 'guard_name' => 'web']);
+        $role->syncPermissions($request->permissions);
 
         session()->flash('success', 'Role Created!');
         return redirect()->route('roles.index');
