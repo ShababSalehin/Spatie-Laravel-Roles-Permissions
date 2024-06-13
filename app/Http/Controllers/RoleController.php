@@ -11,6 +11,8 @@ use App\Http\Controllers\Controller;
 use Brian2694\Toastr\Facades\Toastr;
 use App\Http\Requests\RoleFormRequest;
 use Spatie\Permission\Models\Permission;
+use Illuminate\Support\Facades\Session;
+
 
 class RoleController extends Controller
 {
@@ -21,7 +23,7 @@ class RoleController extends Controller
      */
     public function index()
     {
-        $roles = Role::latest()->get();
+        $roles = Role::with('permissions')->latest()->get();
         return view('role.index', compact('roles'));
     }
 
@@ -32,6 +34,8 @@ class RoleController extends Controller
      */
     public function create()
     {
+        //abort_if(!userCan('role.delete'), 403);
+
         $permissions = Permission::all();
         // $permission_groups = User::getPermissionGroup();
         return view('role.create', compact('permissions'));
@@ -45,12 +49,19 @@ class RoleController extends Controller
      */
     public function store(Request $request)
     {
+        //abort_if(!userCan('role.delete'), 403);
+
         $request->validate([
             'name' =>'required|unique:roles,name',
         ]);
 
         $role = Role::create(['name' => $request->name, 'guard_name' => 'web']);
-        $role->syncPermissions($request->permissions);
+
+        if ($request->has('permissions')) {
+            // Fetch permissions by their IDs
+            $permissions = Permission::whereIn('id', $request->permissions)->get();
+            $role->syncPermissions($permissions);
+        }
 
         session()->flash('success', 'Role Created!');
         return redirect()->route('roles.index');
@@ -75,8 +86,13 @@ class RoleController extends Controller
      */
     public function edit($id)
     {
+        //abort_if(!userCan('role.delete'), 403);
 
-        return view('role.edit');
+        $permissions = Permission::all();
+        $role = Role::with('permissions')->find($id);
+        $data = $role->permissions()->pluck('id')->toArray();
+
+        return view('role.edit', compact(['permissions', 'role', 'data']));
     }
 
     /**
@@ -86,20 +102,53 @@ class RoleController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function update($request, $id)
+
+
+     public function update(Request $request, Role $role)
+     {
+
+        //abort_if(!userCan('role.delete'), 403);
+
+         // Validate the request
+         $request->validate([
+             'name' => 'required|unique:roles,name,' . $role->id,
+         ]);
+
+         // Update the role name
+         $role->update(['name' => $request->name]);
+
+         // Check if permissions are provided in the request
+         if ($request->has('permissions')) {
+             // Fetch permissions by their IDs to ensure they exist
+             $permissions = Permission::whereIn('id', $request->permissions)->get();
+
+             // Sync the fetched permissions with the role
+             $role->syncPermissions($permissions);
+         } else {
+             // If no permissions are provided, sync with an empty array to remove existing permissions
+             $role->syncPermissions([]);
+         }
+
+         // Flash a success message
+         session()->flash('success', 'Role has been updated successfully!');
+
+         // Redirect back to the previous page
+         return redirect()->route('roles.index');
+     }
+
+    public function update_old(Request $request, Role $role)
     {
         //abort_if(!userCan('role.update'), 403);
 
-        try {
-            UpdateRole::update($request, $role);
+        $request->validate([
+            'name' =>'required|unique:roles,name,' . $role->id,
+        ]);
 
-            session->flash('success', 'Role Updated!');
-            return back();
-        } catch (\Throwable $th) {
+        $role->update(['name' => $request->name]);
+        $role->syncPermissions($request->permissions);
 
-            session->flash('error', 'Something is wrong');
-            return back();
-        }
+        session()->flash('success', 'Role has been updated successfully!');
+        return redirect()->route('roles.index');
     }
 
     /**
@@ -112,16 +161,9 @@ class RoleController extends Controller
     {
         //abort_if(!userCan('role.delete'), 403);
 
-        try {
-            if (!is_null($role)) {
-                $role->delete();
-            }
+        $role->delete();
+        session()->flash('success', 'Role has been deleted successfully!');
+        return redirect()->route('roles.index');
 
-            session->flash('success', 'Role Deleted!');
-            return back();
-        } catch (\Throwable $th) {
-            session->flash('error', 'Something is wrong');
-            return back();
-        }
     }
 }
