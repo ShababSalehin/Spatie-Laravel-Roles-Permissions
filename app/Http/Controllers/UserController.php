@@ -89,7 +89,8 @@ class UserController extends Controller
     public function edit(User $user)
     {
         $roles = Role::latest()->get();
-        return view('user.edit', compact(['user', 'roles']));
+        $data = $user->roles()->pluck('id')->toArray();
+        return view('user.edit', compact(['user', 'roles', 'data']));
     }
 
     /**
@@ -104,7 +105,8 @@ class UserController extends Controller
         $request->validate([
             'name' => 'required|max:80',
             'email' => "required|email|unique:users,email,$user->id",
-            'password' => 'nullable|sometimes|min:6|confirmed'
+            'password' => 'nullable|sometimes|min:6|confirmed',
+            'roles' => 'required',
         ]);
 
         $user->update([
@@ -113,12 +115,14 @@ class UserController extends Controller
             'status' => $request->status,
         ]);
 
-        if($request->has('password')){
-            $user->update(['password' => bcrypt('password')]);
+        $user->syncRoles($request->roles);
+
+        if($request->filled('password')){
+            $user->update(['password' => bcrypt($request->password)]);
         }
 
         session()->flash('success', 'User updated successfully');
-        return back();
+        return redirect()->route('users.index');
     }
 
     /**
