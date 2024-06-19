@@ -27,6 +27,12 @@ Route::middleware(
         return view('dashboard');
     })->name('dashboard');
 
-    Route::resource('users', UserController::class);
-    Route::resource('roles', RoleController::class);
+    Route::group(['middleware' =>
+        ['permission:user list|create user|edit user|delete user|role list|create role|edit role|delete role']
+    ], function () {
+        Route::resource('users', UserController::class);
+        Route::resource('roles', RoleController::class);
+    });
+
+
 });
