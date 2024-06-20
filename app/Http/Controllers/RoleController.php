@@ -16,6 +16,13 @@ use Illuminate\Support\Facades\Session;
 
 class RoleController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware(['permission:role list'])->only(['index']);
+        $this->middleware(['permission:create role'])->only(['create']);
+        $this->middleware(['permission:edit role'])->only(['edit']);
+        $this->middleware(['permission:delete role'])->only(['destroy']);
+    }
     /**
      * Display a listing of the resource.
      *

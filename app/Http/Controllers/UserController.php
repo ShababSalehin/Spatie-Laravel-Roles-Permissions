@@ -10,6 +10,14 @@ use Illuminate\Support\Facades\Session;
 
 class UserController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware(['permission:user list'])->only(['index']);
+        $this->middleware(['permission:create user'])->only(['create']);
+        $this->middleware(['permission:edit user'])->only(['edit']);
+        $this->middleware(['permission:delete user'])->only(['destroy']);
+    }
+
     /**
      * Display a listing of the resource.
      *
